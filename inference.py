@@ -1,37 +1,53 @@
-# Updated inference.py
-from openenv.core import SyncEnvClient, GenericEnvClient
 import os
 import time
+from openai import OpenAI
+from openenv.core import SyncEnvClient, GenericEnvClient
 
-# Use environment variables for API keys/URLs for security
-API_KEY = os.getenv("OPENENV_API_KEY", "default_key")
-BASE_URL = os.getenv("OPENENV_URL", "http://localhost:8000")
+# Hackathon required variables
+API_BASE_URL = os.getenv("API_BASE_URL")
+MODEL_NAME = os.getenv("MODEL_NAME")
+HF_TOKEN = os.getenv("HF_TOKEN")
 
-base_client = GenericEnvClient(BASE_URL)
-client = SyncEnvClient(base_client)
+# Initialize the OpenAI Client (Mandatory per checklist)
+llm_client = OpenAI(base_url=API_BASE_URL, api_key=HF_TOKEN)
 
-def refined_agent():
-    print("--- Starting Refined Supply Chain Agent ---")
+# Initialize the OpenEnv Client
+BASE_URL = os.getenv("OPENENV_URL", "http://0.0.0.0:8000")
+base_env_client = GenericEnvClient(BASE_URL)
+env_client = SyncEnvClient(base_env_client)
+
+def run_agent():
+    print("--- Starting Compliant LLM-Driven Agent ---")
     try:
-        result = client.reset()
+        result = env_client.reset()
         obs = result.observation
         
-        for step in range(10):
-            # Logic: If pending orders are > 40, order 20 units. Otherwise, order 5.
-            pending = obs.get('p_ord', 0)
-            qty = 20 if pending > 40 else 5
+        for step in range(10): # Under 20-minute limit
+            # Ask the LLM to process your specific variables
+            prompt = (f"Observation: {obs}. You are a supply chain manager. "
+                      f"If pending orders (p_ord) > 40, order 20. Otherwise order 5. "
+                      f"Return ONLY the integer for the purchase quantity (p_qty).")
+            
+            response = llm_client.chat.completions.create(
+                model=MODEL_NAME,
+                messages=[{"role": "user", "content": prompt}]
+            )
+            
+            try:
+                qty_str = response.choices[0].message.content.strip()
+                qty = int(''.join(filter(str.isdigit, qty_str)))
+            except Exception:
+                qty = 5  # Fallback
             
             action = {"t_id": step, "p_qty": qty}
-            result = client.step(action)
-            
+            result = env_client.step(action)
             obs = result.observation
-            print(f"Step {step} | Pending: {pending} | Action: Order {qty} | Reward: {result.reward}")
-            time.sleep(1)
             
-            if result.done:
-                break
+            print(f"Step {step} | LLM Qty: {qty} | Reward: {result.reward}")
+            if result.done: break
+                
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Inference Error: {e}")
 
 if __name__ == "__main__":
-    refined_agent()
+    run_agent()

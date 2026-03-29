@@ -1,3 +1,4 @@
-name: supply_chain_env
+env_name: "sc-env-agent"
+description: "Supply Chain Optimization Agent"
 version: "1.0.0"
-description: Supply Chain Resource Allocation Environment
+entrypoint: "envs.sc_env.server.app:app"

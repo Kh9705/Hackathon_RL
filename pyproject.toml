@@ -1,13 +1,19 @@
-[build-system]
-requires = ["setuptools", "wheel"]
-build-backend = "setuptools.build_meta"
-
 [project]
 name = "sc-env"
-version = "1.0.0"
-description = "Supply Chain Environment for OpenEnv"
+version = "0.1.0"
+description = "Supply Chain Environment"
+readme = "README.md"
+requires-python = ">=3.10"
 dependencies = [
+    "openenv-core>=0.2.0",
     "fastapi",
     "uvicorn",
     "pydantic"
 ]
+
+[project.scripts]
+server = "server.app:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

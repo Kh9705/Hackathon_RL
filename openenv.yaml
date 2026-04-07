@@ -1,24 +1,56 @@
 version: "0.2.0"
 name: "SC-Env-Supply-Chain"
-description: "Supply chain optimization environment for inventory management."
+description: "Supply chain optimization environment for inventory management with stochastic demand."
 
+# ACTION SPACE: What the agent can do
 action_space:
-  p_qty: "int" 
+  supplier_id: "int"      # Which supplier to order from (not used in simple version)
+  purchase_qty: "int"     # How many units to purchase (0-warehouse_capacity)
 
+# OBSERVATION SPACE: What the agent sees after each step
+# NOTE: reward and done are NOT in observation_space - they're returned separately by step()
 observation_space:
-  p_ord: "int"   
-  t_cap: "int"    
-  reward: "float"
-  done: "bool"
+  pending_orders: "int"           # Current pending customer orders (unfulfilled demand)
+  warehouse_inventory: "int"      # Current units in stock
+  warehouse_capacity: "int"       # Maximum warehouse capacity
+  demand_rate: "float"            # Expected demand per step (for planning)
+  info: "object"                  # Additional metadata (step count, costs, etc.)
 
-
+# TASKS: Minimum 3 difficulty levels with graders
 tasks:
-  - id: "low_demand"
+  - id: "supply_chain_easy"
     name: "Baseline Fulfillment"
+    description: "Low, predictable demand. Goal: learn basic inventory management."
     difficulty: "easy"
-  - id: "high_demand"
+    parameters:
+      base_demand: 8.0
+      demand_variance: 2.0
+      warehouse_capacity: 150
+      max_steps: 50
+    
+  - id: "supply_chain_medium"
     name: "Peak Season Stress"
+    description: "Moderate, variable demand. Goal: balance inventory and costs."
     difficulty: "medium"
-  - id: "capacity_crisis"
+    parameters:
+      base_demand: 15.0
+      demand_variance: 5.0
+      warehouse_capacity: 100
+      max_steps: 50
+  
+  - id: "supply_chain_hard"
     name: "Resource Bottleneck"
+    description: "High, volatile demand with capacity constraints. Goal: optimize under pressure."
     difficulty: "hard"
+    parameters:
+      base_demand: 25.0
+      demand_variance: 10.0
+      warehouse_capacity: 80
+      max_steps: 50
+
+# GRADING CRITERIA (used by validator)
+grading:
+  metric: "cumulative_reward"  # What we measure
+  scale: [0.0, 1.0]            # Score range
+  success_threshold: 0.3        # Minimum score to pass
+  time_limit_seconds: 600       # Max time per task

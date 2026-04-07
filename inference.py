@@ -5,11 +5,16 @@ from typing import Dict, Any, Optional
 
 # Environment variables - support both HF and validator naming conventions
 API_BASE_URL = os.getenv("API_BASE_URL")
-MODEL_NAME = os.getenv("MODEL_NAME")  # Required for LLM
+MODEL_NAME = os.getenv("MODEL_NAME") or "gpt-3.5-turbo"  # Use default if not provided
 API_KEY = os.getenv("API_KEY") or os.getenv("HF_TOKEN")  # Try API_KEY first (validator), then HF_TOKEN (HF Space)
 
-# Check if LLM is available - need all three
-LLM_AVAILABLE = bool(API_BASE_URL and API_KEY and MODEL_NAME)
+# Debug: Log what we detected
+print(f"[INFO] API_BASE_URL: {API_BASE_URL}", file=sys.stderr, flush=True)
+print(f"[INFO] MODEL_NAME: {MODEL_NAME}", file=sys.stderr, flush=True)
+print(f"[INFO] API_KEY present: {bool(API_KEY)}", file=sys.stderr, flush=True)
+
+# Check if LLM is available - need API_BASE_URL and API_KEY (MODEL_NAME has default)
+LLM_AVAILABLE = bool(API_BASE_URL and API_KEY)
 
 try:
     from openenv.core import SyncEnvClient, GenericEnvClient
@@ -24,9 +29,12 @@ if LLM_AVAILABLE:
     try:
         from openai import OpenAI
         llm_client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
+        print(f"[INFO] LLM client initialized successfully", file=sys.stderr, flush=True)
     except Exception as e:
         print(f"[WARN] LLM unavailable: {e}, using heuristics", file=sys.stderr)
         LLM_AVAILABLE = False
+else:
+    print(f"[INFO] LLM not available (missing API_BASE_URL or API_KEY), using heuristics", file=sys.stderr, flush=True)
 
 # Initialize OpenEnv client
 BASE_URL = os.getenv("OPENENV_URL", "http://localhost:8000")

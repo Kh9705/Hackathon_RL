@@ -9,44 +9,64 @@ from envs.sc_env.models import SCAct, SCObs, SCSt
 
 class SCEnv(Environment):
     """
-    Supply Chain Optimization Environment
+    Supply Chain Optimization Environment for RL Training
     
-    Simulates inventory management with:
-    - Stochastic demand
-    - Capacity constraints
-    - Cost penalties (holding, stockout, ordering)
+    A realistic inventory management simulator where an AI agent learns to:
+    - Balance inventory levels to meet customer demand
+    - Minimize holding costs (storage expenses)
+    - Avoid stockout penalties (lost orders)
+    - Minimize reordering costs
+    
+    Features:
+    - Stochastic demand (Gaussian distribution)
+    - Warehouse capacity constraints
+    - Three difficulty levels (easy/medium/hard)
+    - Realistic cost penalties and reward signals
+    - Deterministic with seed control for reproducibility
+    
+    Example:
+        >>> env = SCEnv()
+        >>> obs = env.reset(episode_id="supply_chain_easy-0")
+        >>> action = SCAct(supplier_id=0, purchase_qty=15)
+        >>> obs, reward, done = env.step(action)
     """
     
     def __init__(self):
-        """Initialize all environment state"""
+        """
+        Initialize environment state variables.
+        
+        Sets default values for inventory, demand parameters, and metrics.
+        Called once per environment instance.
+        """
         super().__init__()
         
-        # Episode state
-        self.episode_id: str = ""
-        self.episode_difficulty: str = "easy"
-        self.step_count: int = 0
-        self.max_steps: int = 50
+        # === EPISODE CONTROL ===
+        self.episode_id: str = ""  # Unique identifier for this run
+        self.episode_difficulty: str = "easy"  # Current difficulty (easy/medium/hard)
+        self.step_count: int = 0  # Number of steps executed in current episode
+        self.max_steps: int = 50  # Maximum steps before episode terminates
         
-        # Supply chain state
-        self.warehouse_inventory: int = 50
-        self.warehouse_capacity: int = 100
-        self.pending_orders: int = 0
+        # === INVENTORY STATE ===
+        self.warehouse_inventory: int = 50  # Current units in stock
+        self.warehouse_capacity: int = 100  # Maximum warehouse capacity
+        self.pending_orders: int = 0  # Customer orders waiting to be fulfilled
         
-        # Task-specific parameters
-        self.base_demand: float = 10.0
-        self.demand_variance: float = 5.0
-        self.holding_cost: float = 0.5      # Cost per unit per step
+        # === TASK PARAMETERS (Modified by difficulty) ===
+        self.base_demand: float = 10.0  # Mean demand per step (Gaussian)
+        self.demand_variance: float = 5.0  # Std dev of demand distribution
+        self.holding_cost: float = 0.5  # Cost per unit stored per step
         self.stockout_penalty: float = 10.0  # Penalty per unmet order
-        self.order_cost: float = 1.0         # Cost per unit ordered
+        self.order_cost: float = 1.0  # Cost per unit purchased
         
-        # Metrics for reward calculation
-        self.total_holding_cost: float = 0.0
-        self.total_stockout: float = 0.0
-        self.total_order_cost: float = 0.0
-        self.cumulative_reward: float = 0.0
+        # === METRICS FOR LEARNING ===
+        self.total_holding_cost: float = 0.0  # Cumulative storage costs
+        self.total_stockout: float = 0.0  # Cumulative shortage penalties
+        self.total_order_cost: float = 0.0  # Cumulative purchase costs
+        self.cumulative_reward: float = 0.0  # Total reward this episode
         
-        # RNG for reproducibility
-        self.rng: random.Random = random.Random()
+        # === RANDOMNESS ===
+        self.rng: random.Random = random.Random()  # Seeded for reproducibility
+
 
     def reset(self, seed: Optional[int] = None, episode_id: Optional[str] = None, **kwargs) -> SCObs:
         """

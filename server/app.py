@@ -1,53 +1,95 @@
 """
-FastAPI server for Supply Chain Environment.
+FastAPI Server for Supply Chain Environment.
 
-This module creates the OpenEnv-compliant API endpoints.
-Adjust the import paths based on your project structure.
+This module creates the OpenEnv-compliant REST API for the supply chain
+simulation environment. It exposes endpoints for interaction with the
+environment following OpenEnv framework standards.
+
+Key Responsibilities:
+- Create and configure FastAPI application
+- Register environment with OpenEnv framework
+- Generate required REST endpoints (reset, step, state, health)
+- Handle environment lifecycle (creation, reset, step execution)
+
+OpenEnv Endpoints Generated:
+- POST /reset          : Reset environment, return initial observation
+- POST /step           : Execute action, return (obs, reward, done)
+- GET /state           : Get internal state (for debugging)
+- GET /health          : Health check endpoint
+
+Example:
+    uvicorn server.app:app --host 0.0.0.0 --port 8000
 """
 
 import uvicorn
 from typing import Optional, Dict, Any
 
-# Import framework components
+# ============================================================================
+# OPENENV FRAMEWORK IMPORTS
+# ============================================================================
+
 try:
     from openenv.core.env_server import create_fastapi_app
 except ImportError:
-    # Fallback for different versions
+    # Fallback for different framework versions
     from openenv.core import create_fastapi_app
 
-# Import environment and models
-# Adjust paths based on your directory structure
-from server.environment import SCEnv
-from envs.sc_env.models import SCAct, SCObs
+# ============================================================================
+# PROJECT-SPECIFIC IMPORTS
+# ============================================================================
+# Note: Using absolute imports to ensure compatibility
+
+from server.environment import SCEnv          # Environment class
+from envs.sc_env.models import SCAct, SCObs  # Action and Observation models
 
 
 def create_app():
     """
-    Create and configure the FastAPI application.
+    Create and configure the FastAPI application with OpenEnv integration.
     
-    This uses the OpenEnv framework's create_fastapi_app helper
-    which automatically generates the required endpoints:
-    - POST /reset
-    - POST /step
-    - GET /state
-    - GET /health
+    The OpenEnv framework's create_fastapi_app() automatically generates:
+    - HTTP endpoints for reset/step/state/health
+    - Request/response serialization using Pydantic models
+    - Environment instance management
+    
+    CRITICAL: Pass environment CLASS (callable), not an instance!
+    
+    Returns:
+        FastAPI: Configured FastAPI application ready to serve
+        
+    Example:
+        app = create_app()
+        uvicorn.run(app, host="0.0.0.0", port=8000)
     """
     
-    # create_fastapi_app expects the environment CLASS (callable), not instance
+    # =====================================================================
+    # OPENENV INTEGRATION
+    # =====================================================================
+    # create_fastapi_app handles:
+    # 1. Environment instantiation per request (stateless HTTP)
+    # 2. Action deserialization (JSON → SCAct)
+    # 3. Observation serialization (SCObs → JSON)
+    # 4. Error handling and response formatting
+    
     app = create_fastapi_app(
-        SCEnv,
-        action_cls=SCAct,
-        observation_cls=SCObs
+        SCEnv,                    # Environment CLASS (not instance)
+        action_cls=SCAct,         # Action model for request body
+        observation_cls=SCObs     # Observation model for response
     )
     
     return app
 
 
-# Create the app instance (required by uvicorn)
+# ============================================================================
+# APPLICATION INSTANCE
+# ============================================================================
+# Create the app at module level (required by uvicorn server)
+
 app = create_app()
 
 
 def main():
+
     """
     Entry point for running the server.
     Called by the [project.scripts] in pyproject.toml.

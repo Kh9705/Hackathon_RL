@@ -1,3 +1,24 @@
-name: sc-env
-version: 1.0.0
-description: "OpenEnv Supply Chain Agent"
+version: "0.2.0"
+name: "SC-Env-Supply-Chain"
+description: "Supply chain optimization environment for inventory management."
+
+action_space:
+  p_qty: "int" 
+
+observation_space:
+  p_ord: "int"   
+  t_cap: "int"    
+  reward: "float"
+  done: "bool"
+
+
+tasks:
+  - id: "low_demand"
+    name: "Baseline Fulfillment"
+    difficulty: "easy"
+  - id: "high_demand"
+    name: "Peak Season Stress"
+    difficulty: "medium"
+  - id: "capacity_crisis"
+    name: "Resource Bottleneck"
+    difficulty: "hard"

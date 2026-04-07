@@ -3,13 +3,13 @@ import sys
 import json
 from typing import Dict, Any, Optional
 
-# Environment variables (optional - validator runs without them)
+# Environment variables - support both HF and validator naming conventions
 API_BASE_URL = os.getenv("API_BASE_URL")
-MODEL_NAME = os.getenv("MODEL_NAME")
-HF_TOKEN = os.getenv("HF_TOKEN")
+MODEL_NAME = os.getenv("MODEL_NAME")  # Required for LLM
+API_KEY = os.getenv("API_KEY") or os.getenv("HF_TOKEN")  # Try API_KEY first (validator), then HF_TOKEN (HF Space)
 
-# Check if LLM is available
-LLM_AVAILABLE = all([API_BASE_URL, MODEL_NAME, HF_TOKEN])
+# Check if LLM is available - need all three
+LLM_AVAILABLE = bool(API_BASE_URL and API_KEY and MODEL_NAME)
 
 try:
     from openenv.core import SyncEnvClient, GenericEnvClient
@@ -18,12 +18,12 @@ except ImportError as e:
     print("[ERROR] Install: pip install openenv-core", file=sys.stderr)
     sys.exit(1)
 
-# Initialize LLM client only if env vars present
+# Initialize LLM client if API credentials are available
 llm_client = None
 if LLM_AVAILABLE:
     try:
         from openai import OpenAI
-        llm_client = OpenAI(base_url=API_BASE_URL, api_key=HF_TOKEN)
+        llm_client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
     except Exception as e:
         print(f"[WARN] LLM unavailable: {e}, using heuristics", file=sys.stderr)
         LLM_AVAILABLE = False

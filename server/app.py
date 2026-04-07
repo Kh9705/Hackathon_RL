@@ -33,8 +33,9 @@ def create_app():
     - GET /health
     """
     
+    # create_fastapi_app expects the environment CLASS (callable), not instance
     app = create_fastapi_app(
-        env_class=SCEnv,
+        SCEnv,
         action_cls=SCAct,
         observation_cls=SCObs
     )

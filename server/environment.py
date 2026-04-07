@@ -1,15 +1,13 @@
 import random
 from typing import Optional, Dict, Any
-from dataclasses import dataclass
 
-# Adjust these imports based on your actual openenv installation
-# from openenv.core.env_server import Environment
+# Import OpenEnv base class
+from openenv.core.env_server import Environment
 
 from envs.sc_env.models import SCAct, SCObs, SCSt
 
 
-@dataclass
-class SCEnv:
+class SCEnv(Environment):
     """
     Supply Chain Optimization Environment
     
@@ -21,6 +19,8 @@ class SCEnv:
     
     def __init__(self):
         """Initialize all environment state"""
+        super().__init__()
+        
         # Episode state
         self.episode_id: str = ""
         self.episode_difficulty: str = "easy"
@@ -169,6 +169,24 @@ class SCEnv:
             cumulative_reward=self.cumulative_reward,
             episode_difficulty=self.episode_difficulty
         )
+    
+    async def reset_async(self, seed: Optional[int] = None, episode_id: Optional[str] = None, **kwargs) -> SCObs:
+        """
+        Async version of reset. Delegates to sync reset for now.
+        """
+        return self.reset(seed=seed, episode_id=episode_id, **kwargs)
+    
+    async def step_async(self, action: SCAct) -> tuple[SCObs, float, bool]:
+        """
+        Async version of step. Delegates to sync step for now.
+        """
+        return self.step(action)
+    
+    def close(self):
+        """
+        Clean up resources (required by OpenEnv).
+        """
+        pass
 
     # ============ HELPER METHODS ============
     

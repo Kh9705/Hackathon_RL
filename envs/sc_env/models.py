@@ -4,7 +4,7 @@ from openenv.core.env_server import Action, Observation
 class SCAct(Action):
     """Supply chain action: order from supplier"""
     supplier_id: int = 0
-    purchase_qty: int
+    purchase_qty: int = 0  # Default to 0 if not specified
 
 class SCObs(Observation):
     """Supply chain observation: warehouse state"""

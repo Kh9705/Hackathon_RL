@@ -113,56 +113,66 @@ class SupplyChainAgent:
         
         if "easy" in task_name.lower():
             # EASY: Low demand (base_demand=8), generous capacity
-            # Strategy: Respond to pending orders, maintain small buffer
+            # Strategy: Simple responsive ordering, forgiving environment
             prompt = (
-                f"Supply Chain Task: EASY MODE\n"
+                f"Supply Chain Task: EASY MODE (LOW DEMAND, FORGIVING)\n"
                 f"Current State:\n"
                 f"  - Pending Orders: {pending_orders}\n"
                 f"  - Inventory: {inventory}\n"
-                f"  - Capacity: {capacity}\n"
-                f"  - Demand Rate: {demand_rate:.1f}/step\n\n"
-                f"Strategy for EASY (low demand, forgiving):\n"
-                f"  IF pending_orders > {int(demand_rate * 3)}: order {int(demand_rate * 1.5)}\n"
-                f"  ELSE: order {int(demand_rate * 0.8)}\n\n"
-                f"Respond with ONLY a single integer (quantity to order). No explanation."
+                f"  - Warehouse Capacity: {capacity}\n"
+                f"  - Base Demand: {demand_rate:.1f}/step\n\n"
+                f"Simple Strategy:\n"
+                f"  - If pending > {int(demand_rate * 2.5)}: order {int(demand_rate * 2)} units\n"
+                f"  - Else if pending > {int(demand_rate * 1.5)}: order {int(demand_rate * 1.2)} units\n"
+                f"  - Otherwise: order {int(demand_rate * 0.8)} units\n"
+                f"  - Forgiving environment: optimize for steady supply.\n\n"
+                f"Respond with ONLY a single integer (e.g., 8 or 15). No explanation."
             )
         
         elif "medium" in task_name.lower():
             # MEDIUM: Moderate demand (base_demand=15), balanced capacity
-            # Strategy: Maintain proactive buffer, avoid stockouts
+            # Strategy: Proactive buffer with responsive adjustments
+            pending_pressure = max(0, pending_orders - inventory)
+            recommended_buffer = int(demand_rate * 2.5) if pending_pressure > demand_rate else int(demand_rate * 1.8)
+            
             prompt = (
-                f"Supply Chain Task: MEDIUM MODE\n"
+                f"Supply Chain Task: MEDIUM MODE (VARIABLE DEMAND)\n"
                 f"Current State:\n"
                 f"  - Pending Orders: {pending_orders}\n"
-                f"  - Inventory: {inventory}\n"
-                f"  - Capacity: {capacity}\n"
-                f"  - Demand Rate: {demand_rate:.1f}/step\n\n"
-                f"Strategy for MEDIUM (variable demand, balanced):\n"
-                f"  - If pending > {int(demand_rate * 2)}: aggressive order\n"
-                f"  - Else: conservative order\n"
-                f"  - Always maintain buffer = {int(demand_rate * 2)} units\n"
-                f"  - Calculate: order_qty = max(pending_orders - inventory + buffer, 0)\n"
-                f"  - Cap at {int(capacity * 0.6)} units (60% of capacity)\n\n"
-                f"Respond with ONLY a single integer."
+                f"  - Current Inventory: {inventory}\n"
+                f"  - Warehouse Capacity: {capacity}\n"
+                f"  - Average Demand: {demand_rate:.1f}/step\n\n"
+                f"Decision Framework:\n"
+                f"  - If pending orders growing: order MORE (proactive)\n"
+                f"  - If pending orders stable: order LESS (conservative)\n"
+                f"  - Maintain safety buffer: {recommended_buffer} units\n"
+                f"  - Formula: qty = max(0, pending - inventory + buffer)\n"
+                f"  - Absolute cap: {int(capacity * 0.65)} units\n\n"
+                f"Goal: Avoid both stockouts AND excess inventory.\n"
+                f"Respond with ONLY a single integer (0-{int(capacity * 0.65)})."
             )
         
         else:  # hard
             # HARD: High volatile demand (base_demand=25), limited capacity
-            # Strategy: Aggressive ordering, tight capacity management
+            # Strategy: Aggressive ordering with smart capacity management
+            pending_pressure = max(0, pending_orders - inventory)
+            dynamic_capacity_limit = int(capacity * (0.7 if pending_pressure > demand_rate * 2 else 0.6))
+            
             prompt = (
-                f"Supply Chain Task: HARD MODE\n"
+                f"Supply Chain Task: HARD MODE (HIGH VOLATILITY)\n"
                 f"Current State:\n"
-                f"  - Pending Orders: {pending_orders}\n"
+                f"  - Pending Orders: {pending_orders} (critical: {pending_pressure})\n"
                 f"  - Inventory: {inventory}\n"
                 f"  - Capacity: {capacity}\n"
-                f"  - Demand Rate: {demand_rate:.1f}/step\n\n"
-                f"Strategy for HARD (volatile demand, tight capacity):\n"
-                f"  - High risk of stockouts with limited capacity\n"
-                f"  - Aggressive ordering when pending > {int(demand_rate * 2.5)}\n"
-                f"  - Calculate safe qty: max(pending - inventory + buffer, minimum)\n"
-                f"  - Buffer needed: {int(demand_rate * 3)} units (absorb variance)\n"
-                f"  - Cap at {int(capacity * 0.5)} units (50% of capacity)\n\n"
-                f"Respond with ONLY a single integer. Example: '25' or '42'"
+                f"  - Demand Rate: {demand_rate:.1f}/step (highly volatile)\n\n"
+                f"STRATEGY - Stockout Prevention Priority:\n"
+                f"  1. If pending_orders > {int(demand_rate * 2.5)}: AGGRESSIVE order to clear backlog\n"
+                f"  2. Maintain safety buffer: {int(demand_rate * 3)} units minimum\n"
+                f"  3. Dynamic capacity limit: {dynamic_capacity_limit} units (based on pending pressure)\n"
+                f"  4. Formula: qty = max(10, pending - inventory + {int(demand_rate * 3)})\n"
+                f"  5. NEVER exceed {dynamic_capacity_limit} units per order\n"
+                f"  6. Preference: Stock out prevention > capacity constraints\n\n"
+                f"Respond with ONLY a single integer between 10 and {dynamic_capacity_limit}."
             )
         
         try:
@@ -212,31 +222,43 @@ class SupplyChainAgent:
         # =====================================================================
         
         if "easy" in task_name.lower():
-            # EASY: Conservative ordering in forgiving environment
-            # Logic: Only order when pending >> expected demand
-            if pending_orders > demand_rate * 2:
-                # High pending: order to meet demand + small buffer
-                return int(demand_rate * 1.5)
+            # EASY: Adaptive ordering in forgiving environment
+            # Logic: Scale ordering based on inventory depletion rate
+            pending_pressure = max(0, pending_orders - inventory)
+            if pending_orders > demand_rate * 2.5:
+                # High pending: order aggressively to clear backlog
+                return int(demand_rate * 2.0)
+            elif pending_pressure > demand_rate * 1.2:
+                # Moderate pending: order to maintain 1x demand buffer
+                return int(demand_rate * 1.2)
             else:
-                # Low pending: maintain minimal inventory
-                return int(demand_rate * 0.5)
+                # Low pending: minimal ordering
+                return int(demand_rate * 0.6)
         
         elif "medium" in task_name.lower():
-            # MEDIUM: Balanced policy with proactive buffering
-            # Logic: Maintain 2x demand rate as safety stock
-            buffer = int(demand_rate * 2)
+            # MEDIUM: Balanced policy with adaptive safety stock
+            # Logic: Maintain 2-2.5x demand rate as safety stock depending on situation
+            pending_pressure = max(0, pending_orders - inventory)
+            # If pending orders are high relative to inventory, increase buffer
+            if pending_pressure > demand_rate * 1.5:
+                buffer = int(demand_rate * 2.5)  # Aggressive when behind
+            else:
+                buffer = int(demand_rate * 1.8)  # Conservative when ahead
             needed = max(0, pending_orders - inventory + buffer)
-            # Cap at 60% of capacity to avoid overstocking
-            return min(needed, int(capacity * 0.6))
+            # Cap at 65% of capacity for more responsive ordering
+            return min(needed, int(capacity * 0.65))
         
         else:  # hard
-            # HARD: Conservative with aggressive safety buffer
-            # Logic: Higher buffer (3x) to handle volatile demand
-            buffer = int(demand_rate * 3)
-            # Always order minimum of 5 to maintain buffer
-            needed = max(5, pending_orders - inventory + buffer)
-            # Cap at 50% of capacity (tight limit for hard mode)
-            return min(needed, int(capacity * 0.5))
+            # HARD: Aggressive with dynamic buffer for volatile demand
+            # Logic: Adaptive buffer increases with pending orders (more aggressive ordering)
+            # Base buffer 3x + extra when pending builds up
+            base_buffer = int(demand_rate * 3)
+            pending_pressure = max(0, pending_orders - inventory)
+            # If many pending orders, increase buffer for faster fulfillment
+            adaptive_buffer = base_buffer + int(pending_pressure * 0.5)
+            needed = max(10, pending_orders - inventory + adaptive_buffer)  # Min 10 units
+            # Cap at 65% of capacity (increased from 50% for more aggressive ordering)
+            return min(needed, int(capacity * 0.65))
     
     def get_action(self, task_name: str, observation: Dict[str, Any]) -> int:
         """

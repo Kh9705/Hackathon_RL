@@ -37,10 +37,10 @@ except ImportError:
 # ============================================================================
 # PROJECT-SPECIFIC IMPORTS
 # ============================================================================
-# Note: Using absolute imports to ensure compatibility
+# Using relative imports within server package
 
-from server.environment import SCEnv          # Environment class
-from envs.sc_env.models import SCAct, SCObs  # Action and Observation models
+from .environment import SCEnv      # Environment class
+from .model import SCAct, SCObs      # Action and Observation models
 
 
 def create_app():

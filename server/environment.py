@@ -5,7 +5,7 @@ from typing import Optional, Dict, Any, List
 # Import OpenEnv base class
 from openenv.core.env_server import Environment
 
-from envs.sc_env.models import SCAct, SCObs, SCSt
+from .model import SCAct, SCObs, SCSt
 
 
 class SCEnv(Environment):

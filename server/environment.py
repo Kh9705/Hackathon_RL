@@ -290,9 +290,6 @@ class SCEnv(Environment):
             warehouse_inventory=self.warehouse_inventory,
             warehouse_capacity=self.warehouse_capacity,
             demand_rate=self.base_demand * self.current_demand_shock,
-            stockout_cost=stockout_cost,
-            holding_cost=holding_cost,
-
             info={
                 "step": self.step_count,
                 "fulfilled": fulfilled_orders,

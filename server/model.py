@@ -1,34 +1,30 @@
-from dataclasses import dataclass, field
-from typing import Dict, Any
 from pydantic import BaseModel
+from typing import Dict, Any, Optional
 
-# Use Pydantic for API serialization, or dataclasses with proper annotations
 
-@dataclass
-class SCAct:
+class SCAct(BaseModel):
     """Action: Order a purchase quantity for a supplier"""
     supplier_id: int
     purchase_qty: int
 
 
-@dataclass
-class SCObs:
+class SCObs(BaseModel):
     """
     Observation returned after each step.
     IMPORTANT: Field names must match openenv.yaml observation_space exactly.
+    OpenEnv framework requires Pydantic BaseModel for serialization.
     """
     pending_orders: int      # Number of pending customer orders
     warehouse_inventory: int # Current inventory level
     warehouse_capacity: int  # Maximum warehouse capacity
     demand_rate: float       # Orders per step (for next step prediction)
-    info: Dict[str, Any] = field(default_factory=dict)
+    info: Dict[str, Any] = {}  # Metadata
     
     # Note: reward and done are NOT part of observation_space
     # They are returned separately in the step() response
 
 
-@dataclass
-class SCSt:
+class SCSt(BaseModel):
     """Internal state for tracking"""
     episode_id: str
     step_count: int

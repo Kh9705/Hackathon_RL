@@ -265,12 +265,20 @@ class SCEnv(Environment):
         else:
             current_service_level = 1.0
         
-        # Reward structure:
+        # Reward structure - adjusted by difficulty:
         # - Bonus for high service level (meeting orders)
-        # - Penalty for high costs
+        # - Penalty for high costs (scaled by difficulty)
         # - Bonus for sustainability
         service_bonus = current_service_level * 0.5  # [0, 0.5]
-        cost_penalty = -(total_cost / 100.0)  # Scaled penalty
+        
+        # Difficulty-adjusted cost penalty (easier tasks should reward more generously)
+        if "easy" in self.episode_difficulty.lower():
+            cost_penalty = -(total_cost / 150.0)  # Generous scaling for easy
+        elif "medium" in self.episode_difficulty.lower():
+            cost_penalty = -(total_cost / 120.0)  # Moderate scaling for medium
+        else:  # hard
+            cost_penalty = -(total_cost / 100.0)  # Strict scaling for hard
+            
         sustainability_bonus = -max(0, self.warehouse_inventory - 40) * 0.01  # Reward lower inventory
         
         step_reward = service_bonus + cost_penalty + sustainability_bonus

@@ -1,24 +1,24 @@
 from pydantic import BaseModel
 from typing import Dict, Any, Optional
+from openenv.core.env_server import Action, Observation
 
 
-class SCAct(BaseModel):
+class SCAct(Action):
     """Action: Order a purchase quantity for a supplier"""
     supplier_id: int
     purchase_qty: int
 
 
-class SCObs(BaseModel):
+class SCObs(Observation):
     """
     Observation returned after each step.
     IMPORTANT: Field names must match openenv.yaml observation_space exactly.
-    OpenEnv framework requires Pydantic BaseModel for serialization.
+    Inherits 'done' and 'reward' from Observation base class.
     """
     pending_orders: int      # Number of pending customer orders
     warehouse_inventory: int # Current inventory level
     warehouse_capacity: int  # Maximum warehouse capacity
     demand_rate: float       # Orders per step (for next step prediction)
-    reward: float = 0.0      # Reward signal from this step (OpenEnv requirement)
     info: Dict[str, Any] = {}  # Metadata
 
 

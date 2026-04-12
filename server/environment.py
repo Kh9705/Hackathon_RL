@@ -173,7 +173,6 @@ class SCEnv(Environment):
             warehouse_inventory=self.warehouse_inventory,
             warehouse_capacity=self.warehouse_capacity,
             demand_rate=self.base_demand,
-            reward=0.0,  # Initial step has no reward
             info={
                 "step": self.step_count,
                 "difficulty": self.episode_difficulty,
@@ -291,7 +290,6 @@ class SCEnv(Environment):
             warehouse_inventory=self.warehouse_inventory,
             warehouse_capacity=self.warehouse_capacity,
             demand_rate=self.base_demand * self.current_demand_shock,
-            reward=step_reward,  # Include reward in observation
             info={
                 "step": self.step_count,
                 "fulfilled": fulfilled_orders,

@@ -173,6 +173,8 @@ class SCEnv(Environment):
             warehouse_inventory=self.warehouse_inventory,
             warehouse_capacity=self.warehouse_capacity,
             demand_rate=self.base_demand,
+            reward=0.0,
+            done=False,
             info={
                 "step": self.step_count,
                 "difficulty": self.episode_difficulty,
@@ -290,6 +292,8 @@ class SCEnv(Environment):
             warehouse_inventory=self.warehouse_inventory,
             warehouse_capacity=self.warehouse_capacity,
             demand_rate=self.base_demand * self.current_demand_shock,
+            reward=step_reward,
+            done=done,
             info={
                 "step": self.step_count,
                 "fulfilled": fulfilled_orders,
@@ -300,7 +304,7 @@ class SCEnv(Environment):
             }
         )
         
-        return obs, step_reward, done
+        return obs
 
     def state(self) -> SCSt:
         """Get current internal state (for state endpoint)"""

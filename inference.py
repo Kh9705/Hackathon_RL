@@ -222,18 +222,19 @@ class SupplyChainAgent:
         # =====================================================================
         
         if "easy" in task_name.lower():
-            # EASY: Adaptive ordering in forgiving environment
-            # Logic: Scale ordering based on inventory depletion rate
+            # EASY: Consistent high fill rate strategy
+            # Logic: Maintain stable inventory to achieve 90%+ fill rate target
             pending_pressure = max(0, pending_orders - inventory)
-            if pending_orders > demand_rate * 2.5:
-                # High pending: order aggressively to clear backlog
+            if pending_orders > demand_rate * 3.0:
+                # High backlog: order 2x demand to clear fast
                 return int(demand_rate * 2.0)
-            elif pending_pressure > demand_rate * 1.2:
-                # Moderate pending: order to maintain 1x demand buffer
-                return int(demand_rate * 1.2)
+            elif pending_pressure > demand_rate * 2.0:
+                # Moderate backlog: order 1.5x demand
+                return int(demand_rate * 1.5)
             else:
-                # Low pending: minimal ordering
-                return int(demand_rate * 0.6)
+                # Low backlog: maintain steady 1x demand ordering
+                # This ensures consistent inventory for high fill rate
+                return int(demand_rate * 1.0)
         
         elif "medium" in task_name.lower():
             # MEDIUM: Balanced policy with adaptive safety stock
@@ -318,7 +319,8 @@ def run_tasks():
     # =====================================================================
     for task_name in tasks:
         # Signal start of task to validator
-        print(f"[START] task={task_name}", flush=True)
+        # Format: [START] task=<task_name> env=<benchmark> model=<model_name>
+        print(f"[START] task={task_name} env=supply_chain model=heuristic_agent", flush=True)
         
         try:
             # Reset environment to initial state for this task
@@ -346,8 +348,10 @@ def run_tasks():
                 steps_completed += 1
                 
                 # === EMIT STEP LOG (exact format required for Phase 2 validation) ===
-                # Format: [STEP] step=<int> reward=<float .2f>
-                print(f"[STEP] step={step_idx + 1} reward={reward:.2f}", flush=True)
+                # Format: [STEP] step=<n> action=<action_str> reward=<0.00> done=<true|false> error=<msg|null>
+                action_str = f"order({action_qty})"
+                done_str = str(done).lower()
+                print(f"[STEP] step={step_idx + 1} action={action_str} reward={reward:.2f} done={done_str} error=null", flush=True)
                 
                 # Stop if episode finished early
                 if done:
@@ -370,15 +374,16 @@ def run_tasks():
             final_score = max(0.01, min(0.99, normalized_score))
             
             # === EMIT END LOG (exact format required for Phase 2 validation) ===
-            # Format: [END] task=<name> score=<float .2f> steps=<int>
-            print(f"[END] task={task_name} score={final_score:.2f} steps={steps_completed}", flush=True)
+            # Format: [END] success=<true|false> steps=<n> score=<score> rewards=<r1,r2,...,rn>
+            success = final_score >= 0.5
+            print(f"[END] success={str(success).lower()} steps={steps_completed} score={final_score:.3f} rewards=n/a", flush=True)
         
         except Exception as e:
             # ===================================================================
             # ERROR HANDLING: Layer 2 (Task-level exception handler)
             # ===================================================================
             # Task failed - emit valid failure log with score in (0, 1)
-            print(f"[END] task={task_name} score=0.05 steps=0", flush=True)
+            print(f"[END] success=false steps=0 score=0.05 rewards=n/a", flush=True)
             print(f"[ERROR] Task {task_name} failed: {str(e)[:200]}", file=sys.stderr, flush=True)
 
 

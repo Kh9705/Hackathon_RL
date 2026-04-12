@@ -18,10 +18,8 @@ class SCObs(BaseModel):
     warehouse_inventory: int # Current inventory level
     warehouse_capacity: int  # Maximum warehouse capacity
     demand_rate: float       # Orders per step (for next step prediction)
+    reward: float = 0.0      # Reward signal from this step (OpenEnv requirement)
     info: Dict[str, Any] = {}  # Metadata
-    
-    # Note: reward and done are NOT part of observation_space
-    # They are returned separately in the step() response
 
 
 class SCSt(BaseModel):

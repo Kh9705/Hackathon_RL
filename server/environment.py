@@ -167,12 +167,13 @@ class SCEnv(Environment):
         self.total_order_cost = 0.0
         self.cumulative_reward = 0.0
         
-        # Return initial observation (NO reward/done in observation)
+        # Return initial observation
         return SCObs(
             pending_orders=self.pending_orders,
             warehouse_inventory=self.warehouse_inventory,
             warehouse_capacity=self.warehouse_capacity,
             demand_rate=self.base_demand,
+            reward=0.0,  # Initial step has no reward
             info={
                 "step": self.step_count,
                 "difficulty": self.episode_difficulty,
@@ -290,6 +291,7 @@ class SCEnv(Environment):
             warehouse_inventory=self.warehouse_inventory,
             warehouse_capacity=self.warehouse_capacity,
             demand_rate=self.base_demand * self.current_demand_shock,
+            reward=step_reward,  # Include reward in observation
             info={
                 "step": self.step_count,
                 "fulfilled": fulfilled_orders,
